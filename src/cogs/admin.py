@@ -13,6 +13,7 @@ class Admin(commands.Cog):
 
     @commands.Command
     async def logging(self, ctx):
+        return
         if len(ctx.message.content.split()) > 1:
             with open('cogs/etc/logging', 'w') as f:
                 f.write('cock')
@@ -23,8 +24,6 @@ class Admin(commands.Cog):
             f.truncate()
 
         await ctx.send('Logging stopped!')
-
-
 
 
 def setup(bot):
