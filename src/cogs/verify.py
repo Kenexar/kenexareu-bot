@@ -3,43 +3,45 @@ import nextcord
 from nextcord.ext import commands
 from nextcord.utils import get
 
+from src.cogs.etc.config import VERIFY_CHANNEL, EMBED_ST, current_timestamp
+
 
 class Verify(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-        self.guild = self.bot.get_guild(926242537713311754)
-
-    @commands.Cog.listener()
-    async def on_ready(self):
-        for guild in self.bot.guilds:
-            print(guild.id)
-        print(self.guild)
-
     @commands.command()
     async def loop(self, amount=30):
-        channel = self.bot.get_channel(926242537914634262)
-        messages = []
+        channel = self.bot.get_channel(VERIFY_CHANNEL)
 
-        embed = nextcord.Embed(title='Verification',
-                               description='Bitte Reagiere mit ✅ um dich zu Verifizieren!',
-                               color=0x06ff95)
+        embed = nextcord.Embed(title='SunSide Regelwerk `v2.0`',
+                               description='''
+                                Um erfolgreich durch die Passkontrolle zu gelangen müssen Sie das Regelwerk von SunSide Roleplay gelesen und verstanden haben!
+                                Dann einfach auf ✅ reagieren und es kann losgehen.
+
+                                Zum Neuem SunSide Regelwerk V2📜
+                                Stand: 22.12.21 12:20 Uhr
+                                https://docs.google.com/document/d/16acjtyQXc-ToTQoWlll7iiBALNpwscoJif9EmYSFiCc/edit?usp=sharing
+                                
+                                
+                                Willkommen auf SunSide RolePlay.
+                                
+                                Mit freundlichen Grüßen
+                                euer SunSide-Team''',
+                               color=EMBED_ST,
+                               timestamp=current_timestamp())
         m = await channel.send(embed=embed)
+
         await m.add_reaction('✅')
-        await channel.send(m)
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
-        print(payload)
-
-        id = payload.user_id
-        if payload.bot:
+        if payload.member.bot:
             return
 
-        print(payload.message, payload.user)
-        if str(payload.reaction) == '✅':
-            role = get(payload.member.guild.roles, name='Spieler')
-            await user.add_roles(role)
+        if str(payload.emoji.name) == '✅' and payload.channel_id == VERIFY_CHANNEL:
+            role = get(self.bot.get_guild(int(payload.guild_id)).roles, name='Spieler')
+            await payload.member.add_roles(role)
 
 
 def setup(bot):
