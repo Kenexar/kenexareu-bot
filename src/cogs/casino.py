@@ -6,5 +6,9 @@ class Casino(commands.Cog):
         self.bot = bot
 
 
+    @commands.Command
+    async def blackjack(self, ctx):
+        pass
+
 def setup(bot):
     bot.add_cog(Casino(bot))
