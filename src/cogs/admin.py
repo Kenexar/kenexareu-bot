@@ -3,8 +3,7 @@ from nextcord.ext.commands import CommandNotFound
 from nextcord.ext.commands import MissingPermissions
 from nextcord.ext.commands import has_permissions
 
-from src.cogs.etc.config import (current_timestamp,
-                                 MEMBER_COUNTER,
+from src.cogs.etc.config import (MEMBER_COUNTER,
                                  GUILD_ID)
 
 

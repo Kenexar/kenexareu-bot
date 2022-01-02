@@ -1,31 +1,18 @@
 import asyncio
+import json
 import random
 
 import nextcord
-import pytz
-import json
-
-from datetime import datetime
-
-from nextcord import Interaction
-from nextcord.ui import view
-from nextcord import Button, ButtonStyle
-
 from nextcord.ext import commands
-from nextcord.ext.commands import has_permissions, MissingPermissions
-from nextcord.ext.commands import CommandNotFound
+from nextcord.ext.commands import has_permissions
 from nextcord.utils import get
 
-from src.cogs.etc.config import TICKET_CHANNEL
-from src.cogs.etc.config import TICKET_REACTIONS
+from src.cogs.etc.config import EMBED_ST
 from src.cogs.etc.config import REACTIONS
 from src.cogs.etc.config import TICKET_CATEGORY
 from src.cogs.etc.config import TICKET_CATEGORY_CLOSED
-from src.cogs.etc.config import EMBED_ST
+from src.cogs.etc.config import TICKET_REACTIONS
 from src.cogs.etc.config import current_timestamp
-from src.cogs.etc.config import MEMBER_COUNTER
-from src.cogs.etc.config import GUILD_ID
-
 
 
 class Ticket(commands.Cog):
@@ -97,7 +84,8 @@ class Ticket(commands.Cog):
                 if ticket[member_id]['blocked']:
                     return
 
-            channel = await guild.create_text_channel(name=f'ticket-{random.randint(1000, 9999)}', category=category_open)
+            channel = await guild.create_text_channel(name=f'ticket-{random.randint(1000, 9999)}',
+                                                      category=category_open)
             await channel.set_permissions(payload.member, read_messages=True, send_messages=True)
 
             embed = nextcord.Embed(title='Ticket Wizard',
@@ -148,7 +136,6 @@ class Ticket(commands.Cog):
                 return
 
             if 'ticket' in channel.name:
-
                 current = ticket[member_id]['current']
                 current -= 1
                 ticket[member_id]['current'] = current

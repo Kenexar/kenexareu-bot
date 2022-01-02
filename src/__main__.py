@@ -1,6 +1,5 @@
 import os
 import platform
-import time
 from multiprocessing import Process
 
 import nextcord
