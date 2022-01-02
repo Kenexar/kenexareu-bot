@@ -3,6 +3,7 @@ import random
 
 import nextcord
 import pytz
+import json
 
 from datetime import datetime
 
@@ -25,13 +26,6 @@ from src.cogs.etc.config import current_timestamp
 from src.cogs.etc.config import MEMBER_COUNTER
 from src.cogs.etc.config import GUILD_ID
 
-
-#todo:
-# Support tickets,
-# Team bewerbungen,
-# spenden tickets,
-# fraktions tickets,
-#  specific team roles gets pinged
 
 
 class Ticket(commands.Cog):
@@ -68,8 +62,40 @@ class Ticket(commands.Cog):
         channel = self.bot.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
 
+        member_id = str(payload.member.id)
+
+        with open('cogs/etc/ticket.json', 'r') as f:
+            ticket = json.load(f)
+
         if reaction.name == '➕':
             await message.remove_reaction(reaction, payload.member)
+            print(ticket)
+
+            if member_id in ticket:
+
+                current = ticket[member_id]['current']
+                blocked = ticket[member_id]['blocked']
+
+                if current <= 2 and not blocked:
+                    current += 1
+                    ticket[member_id]['current'] = current
+                else:
+                    ticket[member_id]['blocked'] = True
+
+                m = await channel.send(f'{payload.member.mention} Du kannst nicht mehr als zwei Tickets öffnen!')
+                await asyncio.sleep(3)
+                await m.delete()
+
+            else:
+                ticket[member_id] = {}
+                ticket[member_id]['current'] = 1
+                ticket[member_id]['blocked'] = False
+
+            with open('cogs/etc/ticket.json', 'w') as f:
+                json.dump(ticket, f)
+
+                if ticket[member_id]['blocked']:
+                    return
 
             channel = await guild.create_text_channel(name=f'ticket-{random.randint(1000, 9999)}', category=category_open)
             await channel.set_permissions(payload.member, read_messages=True, send_messages=True)
@@ -122,8 +148,17 @@ class Ticket(commands.Cog):
                 return
 
             if 'ticket' in channel.name:
-                await channel.send('Ticket wird geschlossen in 3 Sekunden')
-                await asyncio.sleep(3)
+
+                current = ticket[member_id]['current']
+                current -= 1
+                ticket[member_id]['current'] = current
+                ticket[member_id]['blocked'] = False
+
+                with open('cogs/etc/ticket.json', 'w') as f:
+                    json.dump(ticket, f)
+
+                await channel.send('Ticket wird geschlossen ... ')
+                await asyncio.sleep(.5)
 
                 await channel.move(end=True, category=category_closed)
                 await channel.edit(name=f'{channel.name}-closed', sync_permissions=True)
