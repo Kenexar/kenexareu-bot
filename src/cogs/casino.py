@@ -5,7 +5,7 @@ class Casino(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.Command
+    @commands.command(aliases=['bj'])
     async def blackjack(self, ctx):
         pass
 
