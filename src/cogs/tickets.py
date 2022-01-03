@@ -13,6 +13,7 @@ from src.cogs.etc.config import TICKET_CATEGORY
 from src.cogs.etc.config import TICKET_CATEGORY_CLOSED
 from src.cogs.etc.config import TICKET_REACTIONS
 from src.cogs.etc.config import current_timestamp
+# yea
 
 
 class Ticket(commands.Cog):
