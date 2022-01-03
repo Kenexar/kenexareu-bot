@@ -27,7 +27,7 @@ class Reload(commands.Cog):
 
     @commands.Command
     @has_permissions(administrator=True)
-    async def listcogs(self, ctx):
+    async def listmodules(self, ctx):
         embed = nextcord.Embed(title='All Cogs that are loaded are listed here!',
                                description='\n'.join(current_cog_modules()),
                                color=EMBED_ST,
