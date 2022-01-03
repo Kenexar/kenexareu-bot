@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from nextcord.ext import commands, tasks
 from nextcord.ext.commands import CommandNotFound
 from nextcord.ext.commands import MissingPermissions
@@ -15,7 +17,7 @@ class Admin(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print('Ready')
+        print(f'Ready at {datetime.now().strftime("%H:%M:%S")}')
 
         await self.current_user.start()
 
