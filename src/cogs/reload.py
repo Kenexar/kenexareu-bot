@@ -9,6 +9,8 @@ from cogs.etc.config import EMBED_ST, PREFIX
 from cogs.etc.config import current_timestamp
 from cogs.etc.config import current_cog_modules
 
+from cogs.etc.embeds import help_embed
+
 
 class Reload(commands.Cog):
     def __init__(self, bot):
@@ -16,7 +18,10 @@ class Reload(commands.Cog):
 
     @commands.Command
     @has_permissions(administrator=True)
-    async def reload(self, ctx, cog_module):
+    async def reload(self, ctx, cog_module=None):
+        if not cog_module:
+            return await ctx.send(embed=help_embed('admin-reload'))
+
         if not cog_module in current_cog_modules():
             return await ctx.send('The giving module is not Loaded!')
 
