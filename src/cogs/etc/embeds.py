@@ -15,4 +15,3 @@ def help_embed(mode='normal'):
 
     return embed
 
-
