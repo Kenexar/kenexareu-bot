@@ -1,9 +1,9 @@
 import mysql.connector.cursor
 import nextcord
 
-from src.cogs.etc.config import EMBED_ST
-from src.cogs.etc.config import PROJECT_NAME
-from src.cogs.etc.config import db
+from cogs.etc.config import EMBED_ST
+from cogs.etc.config import PROJECT_NAME
+from cogs.etc.config import db
 from mysql.connector.errors import ProgrammingError
 from nextcord import Embed
 

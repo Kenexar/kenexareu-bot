@@ -7,12 +7,12 @@ from nextcord.ext import commands
 from nextcord.ext.commands import has_permissions
 from nextcord.utils import get
 
-from src.cogs.etc.config import EMBED_ST
-from src.cogs.etc.config import REACTIONS
-from src.cogs.etc.config import TICKET_CATEGORY
-from src.cogs.etc.config import TICKET_CATEGORY_CLOSED
-from src.cogs.etc.config import TICKET_REACTIONS
-from src.cogs.etc.config import current_timestamp
+from cogs.etc.config import EMBED_ST
+from cogs.etc.config import REACTIONS
+from cogs.etc.config import TICKET_CATEGORY
+from cogs.etc.config import TICKET_CATEGORY_CLOSED
+from cogs.etc.config import TICKET_REACTIONS
+from cogs.etc.config import current_timestamp
 # yea
 
 

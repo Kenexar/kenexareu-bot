@@ -3,7 +3,7 @@ from nextcord.ext import commands
 from nextcord.ext.commands import has_permissions
 from nextcord.utils import get
 
-from src.cogs.etc.config import VERIFY_CHANNEL, EMBED_ST, current_timestamp, REACTIONS
+from cogs.etc.config import VERIFY_CHANNEL, EMBED_ST, current_timestamp, REACTIONS
 
 
 class Verify(commands.Cog):

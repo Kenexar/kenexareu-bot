@@ -5,9 +5,9 @@ import nextcord
 from nextcord.ext import commands
 from nextcord.ext.commands import has_permissions
 
-from src.cogs.etc.config import EMBED_ST, PREFIX
-from src.cogs.etc.config import current_timestamp
-from src.cogs.etc.config import current_cog_modules
+from cogs.etc.config import EMBED_ST, PREFIX
+from cogs.etc.config import current_timestamp
+from cogs.etc.config import current_cog_modules
 
 
 class Reload(commands.Cog):
