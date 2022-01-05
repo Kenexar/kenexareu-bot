@@ -29,6 +29,7 @@ class Reload(commands.Cog):
         await asyncio.sleep(1)
 
         self.bot.load_extension(cog_module)
+        await ctx.send(f'{cog_module} Reloaded!')
 
     @commands.Command
     @has_permissions(administrator=True)
