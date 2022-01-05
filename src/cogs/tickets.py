@@ -79,6 +79,7 @@ class Ticket(commands.Cog):
 
             for emote in ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', REACTIONS['block']]:
                 await message.add_reaction(emote)
+            cur.close()
             return
 
         if reaction.name in ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'] and 'ticket' in channel.name:
@@ -93,6 +94,7 @@ class Ticket(commands.Cog):
                 role = get(guild.roles, id=member)
                 await channel.set_permissions(role, read_messages=True, send_messages=True)
 
+            cur.close()
             return
 
         if f'<:{reaction.name}:{reaction.id}>' == REACTIONS['block']:
@@ -108,6 +110,8 @@ class Ticket(commands.Cog):
                     await channel.delete()
                 except nextcord.errors.NotFound:
                     pass
+                cur.close()
+
                 return
 
             if 'ticket' in channel.name:
@@ -116,6 +120,8 @@ class Ticket(commands.Cog):
 
                 await channel.move(end=True, category=category_closed)
                 await channel.edit(name=f'{channel.name}-closed', sync_permissions=True)
+
+                cur.close()
 
 
 def setup(bot):
