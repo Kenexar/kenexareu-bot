@@ -3,11 +3,8 @@ from datetime import datetime
 import nextcord
 from discord.ext import commands
 
-from cogs.etc.config import EMBED_ST
-from cogs.etc.config import PROJECT_NAME
-from cogs.etc.config import db
-from cogs.etc.config import colors
-from cogs.etc.presets import lvl_up, add_points
+from cogs.etc.config import PROJECT_NAME, db, colors
+from cogs.etc.presets import add_points, lvl_up
 
 
 class Points(commands.Cog):
@@ -19,7 +16,7 @@ class Points(commands.Cog):
         if message.author.bot:
             return
 
-        cur = db.cursor()
+        cur = db.cursor(buffered=True)
 
         cur.execute("SELECT Level, Experience, Multiplier, Coins FROM points WHERE User=%s and Name=%s;", (message.author.id, PROJECT_NAME))
         fetcher = cur.fetchone()

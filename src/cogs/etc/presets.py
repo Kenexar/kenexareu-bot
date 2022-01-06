@@ -44,7 +44,7 @@ def whitelist(mode=str, payload=dict) -> Embed or str:
     :returns: String or nextord.Embed object
     """
 
-    cur_db = db.cursor()
+    cur_db = db.cursor(buffered=True)
 
     if mode == 'list':
         cur_db.execute(

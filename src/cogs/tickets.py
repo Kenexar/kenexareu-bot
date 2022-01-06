@@ -7,14 +7,13 @@ from nextcord.ext import commands
 from nextcord.ext.commands import has_permissions
 from nextcord.utils import get
 
-from cogs.etc.config import EMBED_ST
-from cogs.etc.config import REACTIONS
-from cogs.etc.config import TICKET_CATEGORY
-from cogs.etc.config import TICKET_CATEGORY_CLOSED
-from cogs.etc.config import TICKET_REACTIONS
-from cogs.etc.config import current_timestamp
-from cogs.etc.config import db
-# yea
+from cogs.etc.config import EMBED_ST, db, REACTIONS, TICKET_CATEGORY, TICKET_CATEGORY_CLOSED, TICKET_REACTIONS, current_timestamp
+from nextcord.ui import View, Button
+
+
+class CreateTicketButton(Button):
+    def __init__(self, ):
+        super().__init__(label="Create Ticket", style=nextcord.ButtonStyle.blurple, custom_id="createTicket")
 
 
 class Ticket(commands.Cog):
@@ -29,39 +28,63 @@ class Ticket(commands.Cog):
         channel = self.bot.get_channel(ctx.channel.id)
         await channel.purge()
 
-        embed = nextcord.Embed(title='Erstelle ein Ticket :)',
-                               description='Reagiere mit ➕ um dein ticket zu erstellen',
+        embed = nextcord.Embed(title='Erstelle ein Ticket',
+                               description='Zum erstellen eines **Tickets** klicke auf "**Create Ticket**"!',
                                color=EMBED_ST,
-                               timestamp=current_timestamp())
+                                )
 
-        message = await ctx.send(embed=embed)
-        await message.add_reaction('➕')
+        view = View()
+        view.add_item(CreateTicketButton())
+
+        await ctx.send(embed=embed, view=view)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload):
-        if payload.member.bot:
-            return
+    async def on_interaction(self, interaction):
+        reaction = interaction.data["custom_id"]
 
-        reaction = payload.emoji
-
-        guild = self.bot.get_guild(payload.guild_id)
+        guild = self.bot.get_guild(interaction.guild_id)
         category_open = self.bot.get_channel(TICKET_CATEGORY)
         category_closed = self.bot.get_channel(TICKET_CATEGORY_CLOSED)
 
-        channel = self.bot.get_channel(payload.channel_id)
-        message = await channel.fetch_message(payload.message_id)
+        channel = self.bot.get_channel(interaction.channel_id)
 
-        member_id = str(payload.member.id)
+        member_id = interaction.user.id
 
         cur = db.cursor()
 
-        if reaction.name == '➕':
-            await message.remove_reaction(reaction, payload.member)
-            ticket_id = random.randint(1000, 9999)
+        if reaction == 'createTicket':
+            cur.execute("SELECT user_id FROM tickets WHERE user_id=%s AND is_archived=false", (member_id,))
+            fetcher = cur.fetchall()
 
-            channel = await guild.create_text_channel(name=f'ticket-{ticket_id}',
+            print(len(fetcher))
+
+            if len(fetcher) >= 2:
+                cur.close()
+                return await interaction.followup.send("Du kannst nicht mehr als Zwei tickets eröffnen!", ephemeral=True)
+
+            ticketid = random.randint(1000, 9999)
+
+            channel = await guild.create_text_channel(name=f'ticket-{ticketid}',
                                                       category=category_open)
-            await channel.set_permissions(payload.member, read_messages=True, send_messages=True)
+            print({member_id})
+            cur.execute("INSERT INTO tickets(user_id, ticket_id, is_archived) values (%s, %s, %s)", (member_id, ticketid, 0))
+            db.commit()
+            await channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
+
+            button1 = Button(style=nextcord.ButtonStyle.blurple, emoji="1️⃣", custom_id="button-1")
+            button2 = Button(style=nextcord.ButtonStyle.blurple, emoji="2️⃣", custom_id="button-2")
+            button3 = Button(style=nextcord.ButtonStyle.blurple, emoji="3️⃣", custom_id="button-3")
+            button4 = Button(style=nextcord.ButtonStyle.blurple, emoji="4️⃣", custom_id="button-4")
+            button5 = Button(style=nextcord.ButtonStyle.blurple, emoji="4️⃣", custom_id="button-5")
+            button6 = Button(style=nextcord.ButtonStyle.red, emoji="🔒", custom_id="button-6")
+
+            view = View()
+            view.add_item(button1)
+            view.add_item(button2)
+            view.add_item(button3)
+            view.add_item(button4)
+            view.add_item(button5)
+            view.add_item(button6)
 
             embed = nextcord.Embed(title='Ticket Wizard',
                                    description=f'''**Reagiere mit den Folgenden emotes um dein Ticket zu erstellen!**
@@ -74,48 +97,49 @@ class Ticket(commands.Cog):
                                    color=EMBED_ST,
                                    timestamp=current_timestamp())
 
-            embed.set_footer(text=payload.member)
-            message = await channel.send(payload.member.mention, embed=embed)
+            embed.set_footer(text=interaction.user)
+            message = await channel.send(interaction.user.mention, embed=embed, view=view)
 
-            for emote in ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', REACTIONS['block']]:
-                await message.add_reaction(emote)
-            return
+        if reaction in ['button-1', 'button-2', 'button-3', 'button-4'] and 'ticket' in channel.name:
+            button6 = Button(style=nextcord.ButtonStyle.red, emoji="🔒", custom_id="button-6")
+            view = View()
+            view.add_item(button6)
 
-        if reaction.name in ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'] and 'ticket' in channel.name:
-            await message.remove_reaction(reaction, payload.member)
+            await interaction.edit_original_message(view=view)
 
-            await channel.send(TICKET_REACTIONS[reaction.name]['message'])
+            await channel.send(TICKET_REACTIONS[reaction]['message'])
 
-            for r in ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣']:
-                await message.remove_reaction(r, self.bot.user)
-
-            for member in TICKET_REACTIONS[reaction.name]['action']:
+            for member in TICKET_REACTIONS[reaction]['action']:
                 role = get(guild.roles, id=member)
                 await channel.set_permissions(role, read_messages=True, send_messages=True)
 
-            return
+            return cur.close()
 
-        if f'<:{reaction.name}:{reaction.id}>' == REACTIONS['block']:
-            await message.remove_reaction(reaction, payload.member)
+        if reaction == "button-6":
 
-            channel = self.bot.get_channel(payload.channel_id)
+            channel = self.bot.get_channel(interaction.channel_id)
 
             if 'closed' in channel.name:
                 await channel.send('Ticket will Terminate its self')
+                cur.execute("DELETE FROM tickets where ticket_id=%s", (int(channel.name.strip("ticket- -closed")),))
                 await asyncio.sleep(3)
 
                 try:
                     await channel.delete()
                 except nextcord.errors.NotFound:
                     pass
-                return
+                return cur.close()
 
             if 'ticket' in channel.name:
-                await channel.send('Ticket wird geschlossen ... ')
+                print(channel.name[-4:])
+                cur.execute("UPDATE tickets set is_archived = %s WHERE ticket_id = %s", (True, int(channel.name.strip("ticket- -closed"))))
+                await channel.send('Ticket wird geschlossen... ')
                 await asyncio.sleep(.5)
 
                 await channel.move(end=True, category=category_closed)
                 await channel.edit(name=f'{channel.name}-closed', sync_permissions=True)
+
+            cur.close()
 
 
 def setup(bot):

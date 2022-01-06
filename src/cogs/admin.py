@@ -1,12 +1,13 @@
 from datetime import datetime
-
+from sys import version
+import platform
+import pkg_resources
 from nextcord.ext import commands, tasks
 from nextcord.ext.commands import CommandNotFound
 from nextcord.ext.commands import MissingPermissions
 from nextcord.ext.commands import has_permissions
 
-from cogs.etc.config import (MEMBER_COUNTER,
-                                 GUILD_ID)
+from cogs.etc.config import MEMBER_COUNTER, GUILD_ID
 
 
 class Admin(commands.Cog):
@@ -17,9 +18,19 @@ class Admin(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        print(f'Ready at {datetime.now().strftime("%H:%M:%S")}')
+        print(f'''Bot is ready! 
+Infos:
+  Time: {datetime.now().strftime("%H:%M:%S")}
+  System: {platform.system()}
+  Python version: {version}
+
+         ''')
 
         await self.current_user.start()
+
+    @commands.Cog.listener()
+    async def on_connect(self):
+        print(f'Connecting to Discord. Getting ready...')
 
     @tasks.loop(minutes=10)
     async def current_user(self):
