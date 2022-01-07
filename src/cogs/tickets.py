@@ -1,26 +1,19 @@
 import asyncio
-import concurrent.futures.thread
-import json
+import concurrent
 import random
-from time import time
 
 import nextcord
 from nextcord.ext import commands
 from nextcord.ext.commands import has_permissions
 from nextcord.utils import get
 
-from src.cogs.etc.config import EMBED_ST, db, REACTIONS, TICKET_CATEGORY, TICKET_CATEGORY_CLOSED, TICKET_REACTIONS, \
+from cogs.etc.config import EMBED_ST, db, REACTIONS, TICKET_CATEGORY, TICKET_CATEGORY_CLOSED, TICKET_REACTIONS, \
     current_timestamp
 from nextcord.ui import View, Button
 
 
-class CreateTicketButton(Button):
-    def __init__(self, ):
-        super().__init__(label="Create Ticket", style=nextcord.ButtonStyle.blurple, custom_id="createTicket")
-
-
 async def delete_ticket(ticket_id):
-    with concurrent.futures.thread.ThreadPoolExecutor(max_workers=1) as executor:
+    with concurrent.futures.thread.ThreadPoolExecutor(max_workers=2) as executor:
         executor.submit(
             db.cursor().execute(
                 "DELETE FROM tickets WHERE ticket_id=%s" %
@@ -29,14 +22,43 @@ async def delete_ticket(ticket_id):
         )
 
 
-async def ticket_archive(isarchived):
-    with concurrent.futures.thread.ThreadPoolExecutor(max_workers=1) as executor:
+async def archive_ticket(ticket_id):
+    with concurrent.futures.thread.ThreadPoolExecutor(max_workers=2) as executor:
         executor.submit(
             db.cursor().execute(
-                "DELETE FROM tickets WHERE ticket_id=%s" %
-                isarchived),
+                "UPDATE tickets set is_archived = 1 WHERE ticket_id = %s",
+                (ticket_id,)),
             db.commit()
         )
+
+
+async def update_ticket(user_id, ticket_id):
+    with concurrent.futures.thread.ThreadPoolExecutor(max_workers=2) as executor:
+        executor.submit(
+            db.cursor().execute(
+                "INSERT INTO tickets(user_id, ticket_id, is_archived) values (%s, %s, 0)",
+                (user_id, ticket_id)),
+            db.commit()
+        )
+
+
+async def get_open_tickets(user_id) -> int:
+    with concurrent.futures.thread.ThreadPoolExecutor(max_workers=2) as executor:
+        cur = db.cursor()
+        executor.submit(
+            cur.execute("SELECT user_id FROM tickets WHERE user_id=%s AND is_archived=false",
+                        (user_id,)),
+        )
+
+        fetcher = cur.fetchall()
+        return len(fetcher)
+
+
+"""
+
+ "SELECT user_id FROM tickets WHERE user_id=%s AND is_archived=false",
+            (user_id,)),
+"""
 
 
 class Ticket(commands.Cog):
@@ -57,7 +79,7 @@ class Ticket(commands.Cog):
                                )
 
         view = View()
-        view.add_item(CreateTicketButton())
+        view.add_item(Button(label="Create Ticket", style=nextcord.ButtonStyle.blurple, custom_id="createTicket"))
 
         await ctx.send(embed=embed, view=view)
 
@@ -72,26 +94,21 @@ class Ticket(commands.Cog):
         channel = self.bot.get_channel(interaction.channel_id)
 
         member_id = interaction.user.id
-        cur = db.cursor()
 
         if reaction == 'createTicket':
-            cur.execute("SELECT user_id FROM tickets WHERE user_id=%s AND is_archived=false", (member_id,))
-            fetcher = cur.fetchall()
-
-            print(len(fetcher))
-
-            if len(fetcher) >= 2:
+            print("Pressed")
+            if await get_open_tickets(member_id) >= 2:
                 await interaction.followup.send("Du kannst nicht mehr als Zwei tickets eröffnen!",
                                                 ephemeral=True)
-                return cur.close()
-            ticketid = random.randint(1000, 9999)
+                return
 
-            channel = await guild.create_text_channel(name=f'ticket-{ticketid}',
+            ticket_id = random.randint(1000, 9999)
+
+            channel = await guild.create_text_channel(name=f'ticket-{ticket_id}',
                                                       category=category_open)
-            print({member_id})
-            cur.execute("INSERT INTO tickets(user_id, ticket_id, is_archived) values (%s, %s, %s)",
-                        (member_id, ticketid, 0))
-            db.commit()
+
+            await update_ticket(member_id, ticket_id)
+
             await channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
 
             button1 = Button(style=nextcord.ButtonStyle.blurple, emoji="1️⃣", custom_id="button-1")
@@ -136,7 +153,7 @@ class Ticket(commands.Cog):
                 role = get(guild.roles, id=member)
                 await channel.set_permissions(role, read_messages=True, send_messages=True)
 
-            return cur.close()
+            return
 
         if reaction == "button-6":
 
@@ -144,30 +161,43 @@ class Ticket(commands.Cog):
 
             if 'closed' in channel.name:
                 await channel.send('Ticket will Terminate its self')
-                print("DELETE FROM tickets where ticket_id=%s" % int(channel.name.strip("ticket- -closed")))
                 await delete_ticket(int(channel.name.strip("ticket- -closed")))
-                print("Delete 2")
+
+                button6 = Button(style=nextcord.ButtonStyle.red, emoji="🗑️", custom_id="button-6", disabled=True)
+                view = View()
+                view.add_item(button6)
+
+                await interaction.edit_original_message(view=view)
+
                 await asyncio.sleep(3)
 
                 try:
                     await channel.delete()
                 except nextcord.errors.NotFound:
                     pass
-                return cur.close()
+                return
 
             if 'ticket' in channel.name:
-                print(channel.name[-4:])
-                print("Close 1")
-                cur.execute("UPDATE tickets set is_archived = %s WHERE ticket_id = %s",
-                            (True, int(channel.name.strip("ticket- -closed"))))
-                print("Close 2")
+
+                button6 = Button(style=nextcord.ButtonStyle.red, emoji="🔒", custom_id="button-6", disabled=True)
+                view = View()
+                view.add_item(button6)
+
+                await interaction.edit_original_message(view=view)
+
+                await archive_ticket(int(channel.name.strip("ticket- -closed")))
                 await channel.send('Ticket wird geschlossen... ')
                 await asyncio.sleep(.5)
 
                 await channel.move(end=True, category=category_closed)
                 await channel.edit(name=f'{channel.name}-closed', sync_permissions=True)
 
-            cur.close()
+                button6 = Button(style=nextcord.ButtonStyle.red, emoji="🗑️", custom_id="button-6", disabled=False)
+                view = View()
+                view.add_item(button6)
+
+                await interaction.edit_original_message(view=view)
+
 
 
 def setup(bot):
