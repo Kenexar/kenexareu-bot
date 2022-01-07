@@ -1,19 +1,42 @@
 import asyncio
+import concurrent.futures.thread
 import json
 import random
+from time import time
 
 import nextcord
 from nextcord.ext import commands
 from nextcord.ext.commands import has_permissions
 from nextcord.utils import get
 
-from cogs.etc.config import EMBED_ST, db, REACTIONS, TICKET_CATEGORY, TICKET_CATEGORY_CLOSED, TICKET_REACTIONS, current_timestamp
+from src.cogs.etc.config import EMBED_ST, db, REACTIONS, TICKET_CATEGORY, TICKET_CATEGORY_CLOSED, TICKET_REACTIONS, \
+    current_timestamp
 from nextcord.ui import View, Button
 
 
 class CreateTicketButton(Button):
     def __init__(self, ):
         super().__init__(label="Create Ticket", style=nextcord.ButtonStyle.blurple, custom_id="createTicket")
+
+
+async def delete_ticket(ticket_id):
+    with concurrent.futures.thread.ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(
+            db.cursor().execute(
+                "DELETE FROM tickets WHERE ticket_id=%s" %
+                ticket_id),
+            db.commit()
+        )
+
+
+async def ticket_archive(isarchived):
+    with concurrent.futures.thread.ThreadPoolExecutor(max_workers=1) as executor:
+        executor.submit(
+            db.cursor().execute(
+                "DELETE FROM tickets WHERE ticket_id=%s" %
+                isarchived),
+            db.commit()
+        )
 
 
 class Ticket(commands.Cog):
@@ -31,7 +54,7 @@ class Ticket(commands.Cog):
         embed = nextcord.Embed(title='Erstelle ein Ticket',
                                description='Zum erstellen eines **Tickets** klicke auf "**Create Ticket**"!',
                                color=EMBED_ST,
-                                )
+                               )
 
         view = View()
         view.add_item(CreateTicketButton())
@@ -49,7 +72,6 @@ class Ticket(commands.Cog):
         channel = self.bot.get_channel(interaction.channel_id)
 
         member_id = interaction.user.id
-
         cur = db.cursor()
 
         if reaction == 'createTicket':
@@ -59,15 +81,16 @@ class Ticket(commands.Cog):
             print(len(fetcher))
 
             if len(fetcher) >= 2:
-                cur.close()
-                return await interaction.followup.send("Du kannst nicht mehr als Zwei tickets eröffnen!", ephemeral=True)
-
+                await interaction.followup.send("Du kannst nicht mehr als Zwei tickets eröffnen!",
+                                                ephemeral=True)
+                return cur.close()
             ticketid = random.randint(1000, 9999)
 
             channel = await guild.create_text_channel(name=f'ticket-{ticketid}',
                                                       category=category_open)
             print({member_id})
-            cur.execute("INSERT INTO tickets(user_id, ticket_id, is_archived) values (%s, %s, %s)", (member_id, ticketid, 0))
+            cur.execute("INSERT INTO tickets(user_id, ticket_id, is_archived) values (%s, %s, %s)",
+                        (member_id, ticketid, 0))
             db.commit()
             await channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
 
@@ -121,7 +144,9 @@ class Ticket(commands.Cog):
 
             if 'closed' in channel.name:
                 await channel.send('Ticket will Terminate its self')
-                cur.execute("DELETE FROM tickets where ticket_id=%s", (int(channel.name.strip("ticket- -closed")),))
+                print("DELETE FROM tickets where ticket_id=%s" % int(channel.name.strip("ticket- -closed")))
+                await delete_ticket(int(channel.name.strip("ticket- -closed")))
+                print("Delete 2")
                 await asyncio.sleep(3)
 
                 try:
@@ -132,7 +157,10 @@ class Ticket(commands.Cog):
 
             if 'ticket' in channel.name:
                 print(channel.name[-4:])
-                cur.execute("UPDATE tickets set is_archived = %s WHERE ticket_id = %s", (True, int(channel.name.strip("ticket- -closed"))))
+                print("Close 1")
+                cur.execute("UPDATE tickets set is_archived = %s WHERE ticket_id = %s",
+                            (True, int(channel.name.strip("ticket- -closed"))))
+                print("Close 2")
                 await channel.send('Ticket wird geschlossen... ')
                 await asyncio.sleep(.5)
 

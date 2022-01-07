@@ -1,9 +1,13 @@
+import concurrent
 import random
 import uuid as u
+from time import time
 
 import nextcord
 from nextcord.ext import commands
 from nextcord.ui import View, Button
+
+from src.cogs.etc.config import db
 
 
 class CreateButton(Button):
@@ -11,7 +15,21 @@ class CreateButton(Button):
         super().__init__(style=nextcord.ButtonStyle.blurple, emoji="1️⃣")
 
     async def callback(self, interaction):
-      await interaction.response.send_message(f"{interaction.user.id}", ephemeral=True)
+        await interaction.response.send_message(f"{interaction.user.id}", ephemeral=True)
+
+
+async def delete_ticket(ctx, ticket_id):
+    with concurrent.futures.thread.ThreadPoolExecutor(max_workers=1) as executor:
+        tic = time()
+        executor.submit(
+            db.cursor().execute(
+                "DELETE FROM tickets WHERE ticket_id=%s" %
+                int(ticket_id))
+        )
+        executor.submit(db.commit())
+        toc = time()
+        print("was to execute " + "DELETE FROM tickets WHERE ticket_id=%s" % int(ticket_id))
+        await ctx.send(f'Time: {toc - tic}')
 
 
 class Fun(commands.Cog):
@@ -37,21 +55,11 @@ class Fun(commands.Cog):
 
         await interaction.followup.send("Peter hat einen hasen der huan", view=view)
 """
+
     @commands.Command
     async def roll(self, ctx):
-        button1 = Button(style=nextcord.ButtonStyle.blurple, emoji="1️⃣")
-        button2 = Button(style=nextcord.ButtonStyle.blurple, emoji="2️⃣")
-        button3 = Button(style=nextcord.ButtonStyle.blurple, emoji="3️⃣")
-        button4 = Button(style=nextcord.ButtonStyle.blurple, emoji="4️⃣")
+        await delete_ticket(ctx, "1234")
 
-        view = View()
-        view.add_item(button1)
-        view.add_item(button2)
-        view.add_item(button3)
-        view.add_item(button4)
-        await ctx.channel.purge()
-
-        await ctx.send(f'Test: {u.uuid4()}', view=view)
 
 
 def setup(bot):
