@@ -12,6 +12,9 @@ from nextcord.ui import View, Button
 from nextcord.utils import get
 
 
+# Todo:
+#   Ticket reactivation
+
 async def delete_ticket(ticket_id):
     with ThreadPoolExecutor(max_workers=2) as executor:
         executor.submit(
@@ -24,6 +27,14 @@ async def archive_ticket(ticket_id):
     with ThreadPoolExecutor(max_workers=2) as executor:
         executor.submit(
             db.cursor().execute("UPDATE tickets set is_archived = 1 WHERE ticket_id=%s", (ticket_id,)),
+            db.commit()
+        )
+
+
+async def re_archive_ticket(ticket_id):
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        executor.submit(
+            db.cursor().execute("UPDATE tickets set is_archived=0 WHERE ticket_id=%s", (ticket_id,)),
             db.commit()
         )
 
@@ -152,7 +163,33 @@ class Ticket(commands.Cog):
 
             return
 
-        if reaction == "button-6":
+        if reaction == "button-7":
+            channel = self.bot.get_channel(interaction.channel_id)
+
+            await re_archive_ticket(int(channel.name.strip("ticket- -closed")))
+
+            view = View()
+            view.add_item(Button(style=nextcord.ButtonStyle.red, emoji="🔒", custom_id="button-8", disabled=False))
+
+            cur = db.cursor()
+            cur.execute("select user_id from tickets where ticket_id=%s", (int(channel.name.strip("ticket- -closed")),))
+
+            memberid = cur.fetchone()
+            print(memberid[0])
+            cur.close()
+
+            await channel.move(end=True, category=category_open)
+            await channel.edit(name=channel.name.strip("-closed"))
+
+            await channel.set_permissions(self.bot.get_user(memberid[0]), read_messages=True, send_messages=True)
+
+            try:
+                await interaction.edit_original_message(view=view)
+            except nextcord.errors.NotFound:
+                print('notfound')
+            return
+
+        if reaction in ("button-6",):
             channel = self.bot.get_channel(interaction.channel_id)
 
             if 'closed' in channel.name:
@@ -160,12 +197,16 @@ class Ticket(commands.Cog):
                 await delete_ticket(int(channel.name.strip("ticket- -closed")))
 
                 button6 = Button(style=nextcord.ButtonStyle.red, emoji="🗑️", custom_id="button-6", disabled=True)
+
                 view = View()
                 view.add_item(button6)
 
-                await interaction.edit_original_message(view=view)
+                try:
+                    await interaction.edit_original_message(view=view)
+                except nextcord.errors.NotFound:
+                    print('notfound')
 
-                await asyncio.sleep(3)
+                await asyncio.sleep(.5)
 
                 try:
                     await channel.delete()
@@ -174,15 +215,15 @@ class Ticket(commands.Cog):
                 return
 
             if 'ticket' in channel.name:
-
                 button6 = Button(style=nextcord.ButtonStyle.red, emoji="🔒", custom_id="button-6", disabled=True)
+
                 view = View()
                 view.add_item(button6)
 
                 try:
                     await interaction.edit_original_message(view=view)
                 except nextcord.errors.NotFound:
-                    return
+                    print('notfound')
 
                 await archive_ticket(int(channel.name.strip("ticket- -closed")))
 
@@ -190,13 +231,17 @@ class Ticket(commands.Cog):
                 await asyncio.sleep(.5)
 
                 await channel.move(end=True, category=category_closed)
-                await channel.edit(name=f'{channel.name}-closed', sync_permissions=True)
+                await channel.edit(name=channel.name + '-closed', sync_permissions=True)
 
                 button6 = Button(style=nextcord.ButtonStyle.red, emoji="🗑️", custom_id="button-6", disabled=False)
+                button7 = Button(style=nextcord.ButtonStyle.red, emoji="📝", custom_id="button-7", disabled=False)
+
                 view = View()
                 view.add_item(button6)
+                view.add_item(button7)
 
                 await interaction.edit_original_message(view=view)
+
 
 
 def setup(bot):
