@@ -1,39 +1,35 @@
 import asyncio
-import concurrent
 import random
+from concurrent.futures.thread import ThreadPoolExecutor
 
 import nextcord
-from nextcord.ext import commands
-from nextcord.ext.commands import has_permissions
-from nextcord.utils import get
-
 from cogs.etc.config import EMBED_ST, db, REACTIONS, TICKET_CATEGORY, TICKET_CATEGORY_CLOSED, TICKET_REACTIONS, \
     current_timestamp
+from cogs.etc.config import TICKET_CHANNEL
+from nextcord.ext import commands
+from nextcord.ext.commands import has_permissions
 from nextcord.ui import View, Button
+from nextcord.utils import get
 
 
 async def delete_ticket(ticket_id):
-    with concurrent.futures.thread.ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         executor.submit(
-            db.cursor().execute(
-                "DELETE FROM tickets WHERE ticket_id=%s" %
-                ticket_id),
+            db.cursor().execute("DELETE FROM tickets WHERE ticket_id=%s", (ticket_id,)),
             db.commit()
         )
 
 
 async def archive_ticket(ticket_id):
-    with concurrent.futures.thread.ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         executor.submit(
-            db.cursor().execute(
-                "UPDATE tickets set is_archived = 1 WHERE ticket_id = %s",
-                (ticket_id,)),
+            db.cursor().execute("UPDATE tickets set is_archived = 1 WHERE ticket_id=%s", (ticket_id,)),
             db.commit()
         )
 
 
 async def update_ticket(user_id, ticket_id):
-    with concurrent.futures.thread.ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         executor.submit(
             db.cursor().execute(
                 "INSERT INTO tickets(user_id, ticket_id, is_archived) values (%s, %s, 0)",
@@ -43,7 +39,7 @@ async def update_ticket(user_id, ticket_id):
 
 
 async def get_open_tickets(user_id) -> int:
-    with concurrent.futures.thread.ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         cur = db.cursor()
         executor.submit(
             cur.execute("SELECT user_id FROM tickets WHERE user_id=%s AND is_archived=false",
@@ -54,11 +50,16 @@ async def get_open_tickets(user_id) -> int:
         return len(fetcher)
 
 
-"""
+async def create_ticket():
+    embed = nextcord.Embed(title='Erstelle ein Ticket',
+                           description='Zum erstellen eines **Tickets** klicke auf "**Create Ticket**"!',
+                           color=EMBED_ST,
+                           timestamp=current_timestamp())
 
- "SELECT user_id FROM tickets WHERE user_id=%s AND is_archived=false",
-            (user_id,)),
-"""
+    view = View()
+    view.add_item(Button(label="Create Ticket", style=nextcord.ButtonStyle.blurple, custom_id="createTicket"))
+
+    return embed, view
 
 
 class Ticket(commands.Cog):
@@ -73,15 +74,18 @@ class Ticket(commands.Cog):
         channel = self.bot.get_channel(ctx.channel.id)
         await channel.purge()
 
-        embed = nextcord.Embed(title='Erstelle ein Ticket',
-                               description='Zum erstellen eines **Tickets** klicke auf "**Create Ticket**"!',
-                               color=EMBED_ST,
-                               )
+        createticket = await create_ticket()
 
-        view = View()
-        view.add_item(Button(label="Create Ticket", style=nextcord.ButtonStyle.blurple, custom_id="createTicket"))
+        await ctx.send(embed=createticket[0], view=createticket[1])
 
-        await ctx.send(embed=embed, view=view)
+    @commands.Cog.listener()
+    async def on_ready(self):
+        channel = self.bot.get_channel(TICKET_CHANNEL)
+        await channel.purge()
+
+        createticket = await create_ticket()
+
+        await channel.send(embed=createticket[0], view=createticket[1])
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction):
@@ -96,7 +100,6 @@ class Ticket(commands.Cog):
         member_id = interaction.user.id
 
         if reaction == 'createTicket':
-            print("Pressed")
             if await get_open_tickets(member_id) >= 2:
                 await interaction.followup.send("Du kannst nicht mehr als Zwei tickets eröffnen!",
                                                 ephemeral=True)
@@ -111,20 +114,14 @@ class Ticket(commands.Cog):
 
             await channel.set_permissions(interaction.user, read_messages=True, send_messages=True)
 
-            button1 = Button(style=nextcord.ButtonStyle.blurple, emoji="1️⃣", custom_id="button-1")
-            button2 = Button(style=nextcord.ButtonStyle.blurple, emoji="2️⃣", custom_id="button-2")
-            button3 = Button(style=nextcord.ButtonStyle.blurple, emoji="3️⃣", custom_id="button-3")
-            button4 = Button(style=nextcord.ButtonStyle.blurple, emoji="4️⃣", custom_id="button-4")
-            button5 = Button(style=nextcord.ButtonStyle.blurple, emoji="4️⃣", custom_id="button-5")
-            button6 = Button(style=nextcord.ButtonStyle.red, emoji="🔒", custom_id="button-6")
-
             view = View()
-            view.add_item(button1)
-            view.add_item(button2)
-            view.add_item(button3)
-            view.add_item(button4)
-            view.add_item(button5)
-            view.add_item(button6)
+            button_list = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "🔒"]
+
+            for button in button_list:
+                button1 = Button(style=nextcord.ButtonStyle.blurple,
+                                 emoji=button,
+                                 custom_id=f"button-{button_list.index(button) + 1}")
+                view.add_item(button1)
 
             embed = nextcord.Embed(title='Ticket Wizard',
                                    description=f'''**Reagiere mit den Folgenden emotes um dein Ticket zu erstellen!**
@@ -140,7 +137,7 @@ class Ticket(commands.Cog):
             embed.set_footer(text=interaction.user)
             message = await channel.send(interaction.user.mention, embed=embed, view=view)
 
-        if reaction in ['button-1', 'button-2', 'button-3', 'button-4'] and 'ticket' in channel.name:
+        if reaction in ['button-1', 'button-2', 'button-3', 'button-4', 'button-5'] and 'ticket' in channel.name:
             button6 = Button(style=nextcord.ButtonStyle.red, emoji="🔒", custom_id="button-6")
             view = View()
             view.add_item(button6)
@@ -156,7 +153,6 @@ class Ticket(commands.Cog):
             return
 
         if reaction == "button-6":
-
             channel = self.bot.get_channel(interaction.channel_id)
 
             if 'closed' in channel.name:
@@ -183,9 +179,13 @@ class Ticket(commands.Cog):
                 view = View()
                 view.add_item(button6)
 
-                await interaction.edit_original_message(view=view)
+                try:
+                    await interaction.edit_original_message(view=view)
+                except nextcord.errors.NotFound:
+                    return
 
                 await archive_ticket(int(channel.name.strip("ticket- -closed")))
+
                 await channel.send('Ticket wird geschlossen... ')
                 await asyncio.sleep(.5)
 
@@ -197,7 +197,6 @@ class Ticket(commands.Cog):
                 view.add_item(button6)
 
                 await interaction.edit_original_message(view=view)
-
 
 
 def setup(bot):

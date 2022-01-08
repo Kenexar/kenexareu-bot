@@ -16,20 +16,20 @@ class Verify(commands.Cog):
         channel = self.bot.get_channel(VERIFY_CHANNEL)
         await channel.purge()
 
-        embed = nextcord.Embed(title='SunSide Regelwerk `v2.0`',
+        embed = nextcord.Embed(title='Kenexar Regelwerk',
                                description='''
-                                Um erfolgreich durch die Passkontrolle zu gelangen müssen Sie das Regelwerk von SunSide Roleplay gelesen und verstanden haben!
+                                Um erfolgreich durch die Passkontrolle zu gelangen müssen Sie das Regelwerk von KenexarEU gelesen und verstanden haben!
                                 Dann einfach auf ✅ reagieren und es kann losgehen.
 
-                                Zum Neuem SunSide Regelwerk V2📜
+                                Zum Regelwerk von KenexarEU 📜
                                 Stand: 22.12.21 12:20 Uhr
                                 https://docs.google.com/document/d/16acjtyQXc-ToTQoWlll7iiBALNpwscoJif9EmYSFiCc/edit?usp=sharing
                                 
                                 
-                                Willkommen auf SunSide RolePlay.
+                                Willkommen auf KenexarEU.
                                 
                                 Mit freundlichen Grüßen
-                                euer SunSide-Team''',
+                                euer Kenexar-Team''',
                                color=EMBED_ST,
                                timestamp=current_timestamp())
         m = await channel.send(embed=embed)
