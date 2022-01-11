@@ -163,32 +163,6 @@ class Ticket(commands.Cog):
 
             return
 
-        if reaction == "button-7":
-            channel = self.bot.get_channel(interaction.channel_id)
-
-            await re_archive_ticket(int(channel.name.strip("ticket- -closed")))
-
-            view = View()
-            view.add_item(Button(style=nextcord.ButtonStyle.red, emoji="🔒", custom_id="button-8", disabled=False))
-
-            cur = db.cursor()
-            cur.execute("select user_id from tickets where ticket_id=%s", (int(channel.name.strip("ticket- -closed")),))
-
-            memberid = cur.fetchone()
-            print(memberid[0])
-            cur.close()
-
-            await channel.move(end=True, category=category_open)
-            await channel.edit(name=channel.name.strip("-closed"))
-
-            await channel.set_permissions(self.bot.get_user(memberid[0]), read_messages=True, send_messages=True)
-
-            try:
-                await interaction.edit_original_message(view=view)
-            except nextcord.errors.NotFound:
-                print('notfound')
-            return
-
         if reaction in ("button-6",):
             channel = self.bot.get_channel(interaction.channel_id)
 

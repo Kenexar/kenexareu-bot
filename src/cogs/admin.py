@@ -19,12 +19,10 @@ class Admin(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print(f'''Bot is ready! 
-Infos:
-  Time: {datetime.now().strftime("%H:%M:%S")}
-  System: {platform.system()}
-  Python version: {version}
-
-         ''')
+                Infos:
+                  Time: {datetime.now().strftime("%H:%M:%S")}
+                  System: {platform.system()}
+                  Python version: {version}''')
 
         await self.current_user.start()
 
