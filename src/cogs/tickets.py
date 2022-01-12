@@ -97,7 +97,7 @@ class Ticket(commands.Cog):
         createticket = await create_ticket()
 
         await channel.send(embed=createticket[0], view=createticket[1])
-        #git not so wery fun
+        # chamut
 
     @commands.Cog.listener()
     async def on_interaction(self, interaction):
