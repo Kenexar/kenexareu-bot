@@ -1,8 +1,5 @@
-def function(ctx, view):
-    ctx = 'Ä'
-    view = 'Ä'
-    return ctx, view
+from src.cogs.etc.config import db
 
-
-print(type(function('a', 'b')), function('a', 'b'))
-
+with db.cursor as cur:
+    cur.execute('select * from users;')
+    print(cur.fetchall())

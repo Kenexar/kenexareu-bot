@@ -19,7 +19,8 @@ async def delete_ticket(ticket_id):
     with ThreadPoolExecutor(max_workers=2) as executor:
         executor.submit(
             db.cursor().execute("DELETE FROM tickets WHERE ticket_id=%s", (ticket_id,)),
-            db.commit()
+            db.commit(),
+            db.cursor().close()
         )
 
 
@@ -27,7 +28,8 @@ async def archive_ticket(ticket_id):
     with ThreadPoolExecutor(max_workers=2) as executor:
         executor.submit(
             db.cursor().execute("UPDATE tickets set is_archived = 1 WHERE ticket_id=%s", (ticket_id,)),
-            db.commit()
+            db.commit(),
+            db.cursor().close()
         )
 
 
@@ -35,7 +37,8 @@ async def re_archive_ticket(ticket_id):
     with ThreadPoolExecutor(max_workers=2) as executor:
         executor.submit(
             db.cursor().execute("UPDATE tickets set is_archived=0 WHERE ticket_id=%s", (ticket_id,)),
-            db.commit()
+            db.commit(),
+            db.cursor().close()
         )
 
 
@@ -45,7 +48,8 @@ async def update_ticket(user_id, ticket_id):
             db.cursor().execute(
                 "INSERT INTO tickets(user_id, ticket_id, is_archived) values (%s, %s, 0)",
                 (user_id, ticket_id)),
-            db.commit()
+            db.commit(),
+            db.cursor().close()
         )
 
 
@@ -58,6 +62,7 @@ async def get_open_tickets(user_id) -> int:
         )
 
         fetcher = cur.fetchall()
+        cur.close()
         return len(fetcher)
 
 
@@ -215,7 +220,6 @@ class Ticket(commands.Cog):
                 view.add_item(button7)
 
                 await interaction.edit_original_message(view=view)
-
 
 
 def setup(bot):
