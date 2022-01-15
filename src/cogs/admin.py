@@ -7,7 +7,7 @@ from nextcord.ext.commands import CommandNotFound
 from nextcord.ext.commands import MissingPermissions
 from nextcord.ext.commands import has_permissions
 
-from cogs.etc.config import MEMBER_COUNTER, GUILD_ID
+from cogs.etc.config import MEMBER_COUNTER, GUILD_ID, db
 
 
 class Admin(commands.Cog):
@@ -19,10 +19,10 @@ class Admin(commands.Cog):
     @commands.Cog.listener()
     async def on_ready(self):
         print(f'''Bot is ready! 
-                Infos:
-                  Time: {datetime.now().strftime("%H:%M:%S")}
-                  System: {platform.system()}
-                  Python version: {version}''')
+Infos:
+  Time: {datetime.now().strftime("%H:%M:%S")}
+  System: {platform.system()}
+  Python version: {version}''')
 
         await self.current_user.start()
 
@@ -35,6 +35,9 @@ class Admin(commands.Cog):
         """ here comes the current user count on the server """
         guild = self.bot.get_guild(GUILD_ID)
         channel = guild.get_channel(MEMBER_COUNTER)
+
+        # Just a lil MYSQL bitch!
+        db.ping()
 
         await channel.edit(name=f'Member: {guild.member_count}')
 

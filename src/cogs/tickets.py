@@ -4,8 +4,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 
 import nextcord
 from cogs.etc.config import EMBED_ST, db, REACTIONS, TICKET_CATEGORY, TICKET_CATEGORY_CLOSED, TICKET_REACTIONS, \
-    current_timestamp
-from cogs.etc.config import TICKET_CHANNEL
+    current_timestamp, TICKET_CHANNEL
 from nextcord.ext import commands
 from nextcord.ext.commands import has_permissions
 from nextcord.ui import View, Button
@@ -15,42 +14,37 @@ from nextcord.utils import get
 # Todo:
 #   Ticket reactivation
 
+async def execute_sql(executor: ThreadPoolExecutor, sql_string: str):
+    cur = db.cursor()
+    try:
+        executor.submit(
+            cur.execute(sql_string),
+            db.commit(),
+            cur.close()
+        )
+    except Exception as e:
+        print("SQL Exception: " + e)
+
+
 async def delete_ticket(ticket_id):
     with ThreadPoolExecutor(max_workers=2) as executor:
-        executor.submit(
-            db.cursor().execute("DELETE FROM tickets WHERE ticket_id=%s", (ticket_id,)),
-            db.commit(),
-            db.cursor().close()
-        )
+        await execute_sql(executor, "DELETE FROM tickets WHERE ticket_id=%s" % (ticket_id,))
 
 
 async def archive_ticket(ticket_id):
     with ThreadPoolExecutor(max_workers=2) as executor:
-        executor.submit(
-            db.cursor().execute("UPDATE tickets set is_archived = 1 WHERE ticket_id=%s", (ticket_id,)),
-            db.commit(),
-            db.cursor().close()
-        )
+        await execute_sql(executor, "UPDATE tickets set is_archived = 1 WHERE ticket_id=%s" % (ticket_id,))
 
 
 async def re_archive_ticket(ticket_id):
     with ThreadPoolExecutor(max_workers=2) as executor:
-        executor.submit(
-            db.cursor().execute("UPDATE tickets set is_archived=0 WHERE ticket_id=%s", (ticket_id,)),
-            db.commit(),
-            db.cursor().close()
-        )
+        await  execute_sql(executor, "UPDATE tickets set is_archived=0 WHERE ticket_id=%s" % (ticket_id,))
 
 
 async def update_ticket(user_id, ticket_id):
     with ThreadPoolExecutor(max_workers=2) as executor:
-        executor.submit(
-            db.cursor().execute(
-                "INSERT INTO tickets(user_id, ticket_id, is_archived) values (%s, %s, 0)",
-                (user_id, ticket_id)),
-            db.commit(),
-            db.cursor().close()
-        )
+        await execute_sql(executor, "INSERT INTO tickets(user_id, ticket_id, is_archived) values (%s, %s, 0)" %
+                    (user_id, ticket_id))
 
 
 async def get_open_tickets(user_id) -> int:
@@ -59,8 +53,7 @@ async def get_open_tickets(user_id) -> int:
         executor.submit(
             cur.execute("SELECT user_id FROM tickets WHERE user_id=%s AND is_archived=false",
                         (user_id,)),
-        )
-
+            )
         fetcher = cur.fetchall()
         cur.close()
         return len(fetcher)
@@ -85,7 +78,6 @@ class Ticket(commands.Cog):
     @commands.command(name='ticket')
     @has_permissions(administrator=True)
     async def _ticket(self, ctx):
-        """ For the Ticket message to start the wizard """
 
         channel = self.bot.get_channel(ctx.channel.id)
         await channel.purge()
