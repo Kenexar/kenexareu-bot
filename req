@@ -16,8 +16,11 @@ idna==3.3
 multidict==5.2.0
 mysql-connector==2.2.9
 nextcord==2.0.0a4
+normal==1.2.0
 pexpect==4.8.0
 project-name==0.2.175
 ptyprocess==0.7.0
 pytz==2021.3
+six==1.16.0
+SLPP==1.2.3
 yarl==1.7.2
