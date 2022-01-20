@@ -44,7 +44,7 @@ async def re_archive_ticket(ticket_id):
 async def update_ticket(user_id, ticket_id):
     with ThreadPoolExecutor(max_workers=2) as executor:
         await execute_sql(executor, "INSERT INTO tickets(user_id, ticket_id, is_archived) values (%s, %s, 0)" %
-                    (user_id, ticket_id))
+                          (user_id, ticket_id))
 
 
 async def get_open_tickets(user_id) -> int:
@@ -53,10 +53,17 @@ async def get_open_tickets(user_id) -> int:
         executor.submit(
             cur.execute("SELECT user_id FROM tickets WHERE user_id=%s AND is_archived=false",
                         (user_id,)),
-            )
+        )
         fetcher = cur.fetchall()
         cur.close()
         return len(fetcher)
+
+
+async def send_interaction_message(msg: str, interaction, temp_msg: bool = True):
+    try:
+        await interaction.followup.send(msg, ephemeral=temp_msg)
+    except Exception as e:
+        print("Interaction failed: " + e)
 
 
 async def create_ticket():
@@ -109,14 +116,16 @@ class Ticket(commands.Cog):
 
         if reaction == 'createTicket':
             if await get_open_tickets(member_id) >= 2:
-                await interaction.followup.send("Du kannst nicht mehr als Zwei tickets eröffnen!",
-                                                ephemeral=True)
+                await send_interaction_message("Du kannst nicht mehr als Zwei tickets eröffnen!",
+                                               interaction)
                 return
 
             ticket_id = random.randint(1000, 9999)
 
             channel = await guild.create_text_channel(name=f'ticket-{ticket_id}',
                                                       category=category_open)
+
+            await send_interaction_message(f"Dein Ticket wurde erstellt #ticket-{ticket_id}!", interaction)
 
             await update_ticket(member_id, ticket_id)
 
