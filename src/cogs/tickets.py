@@ -213,7 +213,7 @@ class Ticket(commands.Cog):
                 await channel.move(end=True, category=category_closed)
                 await channel.edit(name=channel.name + '-closed', sync_permissions=True)
 
-                button6 = Button(style=nextcord.ButtonStyle.red, emoji="🗑️", custom_id="button-6", disabled=False)
+                button6 = Button(style=nextcord.ButtonStyle.red, emoji="🗑"️, custom_id="button-6", disabled=False)
                 button7 = Button(style=nextcord.ButtonStyle.red, emoji="📝", custom_id="button-7", disabled=False)
 
                 view = View()
