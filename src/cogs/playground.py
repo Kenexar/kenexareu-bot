@@ -1,5 +1,5 @@
-from src.cogs.etc.config import db
+import fileinput
 
-with db.cursor as cur:
-    cur.execute('select * from users;')
-    print(cur.fetchall())
+with fileinput.FileInput('etc/config_preset', inplace=True) as file:
+    for line in file:
+        print(line.replace('config', 'esx_mg13'), end='')
