@@ -1,8 +1,6 @@
 import mysql.connector.cursor
 import nextcord
 
-from cogs.etc.config import EMBED_ST
-from cogs.etc.config import PROJECT_NAME
 from cogs.etc.config import db
 from mysql.connector.errors import ProgrammingError
 from nextcord import Embed
@@ -31,59 +29,6 @@ def parser(rounds=int, toparse=list, option=list) -> list or str:
                     return 'Index out of range'
             return return_list
         return return_list
-
-
-def whitelist(mode=str, payload=dict) -> Embed or str:
-    """Whitelist function whitelist a member
-
-    :param mode:str-add: Add a Member to the Whitelist for Administration
-    :param mode:str-list: List all members on the whitelist
-    :param mode:str-remove: Remove a Member from the Whitelist
-    :param member: Serve the member
-
-    :returns: String or nextord.Embed object
-    """
-
-    cur_db = db.cursor(buffered=True)
-
-    if mode == 'list':
-        cur_db.execute(
-            f"SELECT user_name, rank FROM whitelist WHERE name=%s", (PROJECT_NAME,))
-        fetcher = cur_db.fetchall()
-        cur_db.close()
-        embed = nextcord.Embed(title='Whitelist', color=EMBED_ST)
-
-        if fetcher:
-            for i in fetcher:
-                embed.add_field(name=i[0],
-                                value=f'Rank: {WHITELIST_RANKS[i[1]]}',
-                                inline=False)
-        else:
-            return 'Cannot find any entries'
-        return embed
-
-    if mode == 'add':
-        member = payload.get('member')
-        rank = payload.get('rank')
-        username = payload.get('name')
-
-        cur_db.execute(
-            "INSERT INTO whitelist(name, uid, rank, user_name) VALUES (%s, %s, %s, %s)",
-            (PROJECT_NAME, member, rank, username))
-        db.commit()
-        cur_db.close()
-        return f'Added <@{member}> to the [BOT]whitelist'
-
-    if mode == 'remove':
-        member = payload.get('user')
-        cur_db.execute("DELETE FROM whitelist WHERE uid=%s and name=%s;",
-                       (member, PROJECT_NAME))
-
-        db.commit()
-        cur_db.close()
-        return f'Removed <@{member}> from [BOT]whitelist'
-
-    return f'`{mode}` is not available'
 
 
 def get_perm(user) -> int:
