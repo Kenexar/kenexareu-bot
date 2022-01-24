@@ -3,6 +3,9 @@ eval "source /home/kenexareu-bot/venv/bin/activate"
 if [ $# -eq 0 ]; then
 screen -X -S kenexareu-bot kill
 screen -U -m -d -S kenexareu-bot python3.8 __main__.py
+
+screen -X -S git-updater-ken kill
+screen -U -m -d -S git-updater-ken python3.8 git-updater.py
 echo "Bot is started"
 exit 1
 fi
@@ -10,6 +13,10 @@ fi
 if [ $1 == "-r" ]; then
 screen -X -S kenexareu-bot kill
 screen -U -m -d -S kenexareu-bot python3.8 __main__.py
+
+screen -X -S git-updater-ken kill
+screen -U -m -d -S git-updater-ken python3.8 git-updater.py
+
 screen -r kenexareu-bot
 echo "Bot is started"
 exit 1
