@@ -7,7 +7,7 @@ import nextcord
 from nextcord.ext import commands
 from nextcord.ui import View, Button
 
-from src.cogs.etc.config import db
+from cogs.etc.config import db
 
 
 class CreateButton(Button):
